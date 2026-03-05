@@ -29,3 +29,9 @@ body {
 p {
 	color: gray;
 }
+
+.btns {
+	display: flex;
+	gap: 15px;
+	justify-content: center;
+}
