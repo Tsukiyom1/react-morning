@@ -3,3 +3,8 @@ export interface IPost {
 	title: string;
 	body: string;
 }
+
+export interface IPostWithoutId {
+	title: string;
+	body: string;
+}

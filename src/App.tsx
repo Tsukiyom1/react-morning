@@ -4,6 +4,8 @@ import Posts from "./components/posts/Posts";
 import MyInput from "./UI/input/MyInput";
 import MyButton from "./UI/button/MyButton";
 import type { IPost } from "./interface/IPost";
+import MySelect from "./UI/select/MySelect";
+import React from "react";
 
 // useEffect(() => {
 // 	const fetchData = async () => {
@@ -22,10 +24,10 @@ import type { IPost } from "./interface/IPost";
 
 function App() {
 	const [data, setData] = useState<IPost[]>([
-		{ title: "Js", body: "Я изучаю JS!", id: 1 },
-		{ title: "React", body: "Я изучаю React!", id: 2 },
-		{ title: "Python", body: "Я изучаю Python!", id: 3 },
-		{ title: "Nest", body: "Я изучаю Nest!", id: 4 },
+		{ title: "aa", body: "ее изучаю JS!", id: 1 },
+		{ title: "cc", body: "оо изучаю React!", id: 2 },
+		{ title: "ff", body: "рр изучаю Python!", id: 3 },
+		{ title: "bb", body: "фф изучаю Nest!", id: 4 },
 	]);
 
 	const [title, setTitle] = useState<string>("");
@@ -37,6 +39,18 @@ function App() {
 	});
 
 	const [editingPostId, setEditingPostId] = useState<number | null>(null);
+	const [selected, setSelected] = useState<string>("");
+	const sortedPosts = React.useMemo(() => {
+		console.log(selected, "selected in use memo");
+
+		return selected
+			? [...data].sort((a, b) =>
+					a[selected as keyof Omit<IPost, "id">].localeCompare(
+						b[selected as keyof Omit<IPost, "id">],
+					),
+				)
+			: [...data];
+	}, [selected, data]);
 
 	const onChangeBody = (e: ChangeEvent<HTMLInputElement>) => {
 		setBody(e.target.value);
@@ -107,6 +121,13 @@ function App() {
 
 		setEditingPostId(null);
 	};
+
+	const sortPosts = (value: string) => {
+		console.log(value, "value on sort posts function");
+
+		setSelected(value);
+	};
+
 	return (
 		<>
 			<form onSubmit={addNewPost}>
@@ -124,7 +145,16 @@ function App() {
 				/>
 				<MyButton type='submit' children='Создать' />
 			</form>
-			{data.map(data => (
+			<MySelect
+				defaultValue='Сортировка по'
+				onChange={sortPosts}
+				options={[
+					{ name: "Сортировка по названию", value: "title" },
+					{ name: "Сортировка по описанию", value: "body" },
+				]}
+				value={selected}
+			/>
+			{sortedPosts.map(data => (
 				<Posts
 					post={data}
 					key={data.id}
