@@ -1,4 +1,10 @@
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import {
+	useCallback,
+	useMemo,
+	useState,
+	type ChangeEvent,
+	type FormEvent,
+} from "react";
 
 import Posts from "./components/posts/Posts";
 import MyInput from "./UI/input/MyInput";
@@ -32,11 +38,16 @@ function App() {
 
 	const [title, setTitle] = useState<string>("");
 	const [body, setBody] = useState<string>("");
+	const [searchQuery, setSearchQuery] = useState<string>("");
 
 	const [editValue, setEditValue] = useState({
 		title: "",
 		body: "",
 	});
+
+	// map он создает массив не меняет исходный
+	// sort он не создает новый массив а меняет исходный
+	// spread оператор он создает копию массива
 
 	const [editingPostId, setEditingPostId] = useState<number | null>(null);
 	const [selected, setSelected] = useState<string>("");
@@ -128,6 +139,20 @@ function App() {
 		setSelected(value);
 	};
 
+	const searchPosts = useCallback(() => {
+		const query = searchQuery.toLowerCase();
+
+		const searched = sortedPosts.filter(post => {
+			const title = post.title.toLowerCase().includes(query);
+			const body = post.body.toLowerCase().includes(query);
+
+			return title || body;
+		});
+
+		return searched;
+	}, [sortedPosts, searchQuery]);
+
+	const searchedPosts = useMemo(() => searchPosts(), [searchPosts]);
 	return (
 		<>
 			<form onSubmit={addNewPost}>
@@ -145,6 +170,15 @@ function App() {
 				/>
 				<MyButton type='submit' children='Создать' />
 			</form>
+			<MyInput
+				onChange={(e: ChangeEvent<HTMLInputElement>) => {
+					setSearchQuery(e.target.value);
+				}}
+				placeholder='Поиск...'
+				type='text'
+				value={searchQuery}
+				name='search'
+			/>
 			<MySelect
 				defaultValue='Сортировка по'
 				onChange={sortPosts}
@@ -154,7 +188,7 @@ function App() {
 				]}
 				value={selected}
 			/>
-			{sortedPosts.map(data => (
+			{searchedPosts.map(data => (
 				<Posts
 					post={data}
 					key={data.id}
