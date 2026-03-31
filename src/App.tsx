@@ -14,6 +14,7 @@ import MySelect from "./UI/select/MySelect";
 import React from "react";
 import MyModal from "./components/modal/MyModal";
 import { useSortedPosts } from "./hooks/useSortedPosts";
+import { PostApiService } from "./api/endpoints/posts.api";
 
 // useEffect(() => {
 // 	const fetchData = async () => {
@@ -32,10 +33,10 @@ import { useSortedPosts } from "./hooks/useSortedPosts";
 
 function App() {
 	const [data, setData] = useState<IPost[]>([
-		{ title: "aa", body: "ее изучаю JS!", id: 1 },
-		{ title: "cc", body: "оо изучаю React!", id: 2 },
-		{ title: "ff", body: "рр изучаю Python!", id: 3 },
-		{ title: "bb", body: "фф изучаю Nest!", id: 4 },
+		// { title: "aa", body: "ее изучаю JS!", id: 1 },
+		// { title: "cc", body: "оо изучаю React!", id: 2 },
+		// { title: "ff", body: "рр изучаю Python!", id: 3 },
+		// { title: "bb", body: "фф изучаю Nest!", id: 4 },
 	]);
 
 	const [title, setTitle] = useState<string>("");
@@ -48,6 +49,28 @@ function App() {
 		body: "",
 	});
 
+	React.useEffect(() => {
+		const fetchData = async () => {
+			const response = await PostApiService.getAllPosts();
+			const data = Object.keys(response).map(value => {
+				console.log(value, "value from map method");
+
+				return {
+					id: value,
+					...response[value],
+				};
+			});
+
+			console.log(
+				data,
+				"final data from firebase (Изменили под нужный нам формат и записали ключ в виде id для того чтобы использовать ее для удаление и редактирование данных)",
+			);
+
+			setData(data);
+		};
+
+		fetchData();
+	}, []);
 	// map он создает массив не меняет исходный
 	// sort он не создает новый массив а меняет исходный
 	// spread оператор он создает копию массива
@@ -145,6 +168,7 @@ function App() {
 	}, [sortedPosts, searchQuery]);
 
 	const searchedPosts = useMemo(() => searchPosts(), [searchPosts]);
+
 	return (
 		<>
 			<MyButton
