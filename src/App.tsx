@@ -12,6 +12,8 @@ import MyButton from "./UI/button/MyButton";
 import type { IPost } from "./interface/IPost";
 import MySelect from "./UI/select/MySelect";
 import React from "react";
+import MyModal from "./components/modal/MyModal";
+import { useSortedPosts } from "./hooks/useSortedPosts";
 
 // useEffect(() => {
 // 	const fetchData = async () => {
@@ -39,6 +41,7 @@ function App() {
 	const [title, setTitle] = useState<string>("");
 	const [body, setBody] = useState<string>("");
 	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [modal, setModal] = useState(false);
 
 	const [editValue, setEditValue] = useState({
 		title: "",
@@ -51,17 +54,7 @@ function App() {
 
 	const [editingPostId, setEditingPostId] = useState<number | null>(null);
 	const [selected, setSelected] = useState<string>("");
-	const sortedPosts = React.useMemo(() => {
-		console.log(selected, "selected in use memo");
-
-		return selected
-			? [...data].sort((a, b) =>
-					a[selected as keyof Omit<IPost, "id">].localeCompare(
-						b[selected as keyof Omit<IPost, "id">],
-					),
-				)
-			: [...data];
-	}, [selected, data]);
+	const sortedPosts = useSortedPosts(data, selected);
 
 	const onChangeBody = (e: ChangeEvent<HTMLInputElement>) => {
 		setBody(e.target.value);
@@ -72,8 +65,6 @@ function App() {
 
 	const onEditChange = (e: ChangeEvent<HTMLInputElement>) => {
 		const { value, name } = e.target;
-		console.log(value, "val");
-		console.log(name, "name");
 
 		setEditValue(prev => {
 			return {
@@ -95,6 +86,7 @@ function App() {
 		setData([...data, newPosts]);
 		setBody("");
 		setTitle("");
+		setModal(false);
 	};
 
 	const onDeletePost = (id: number) => {
@@ -155,21 +147,29 @@ function App() {
 	const searchedPosts = useMemo(() => searchPosts(), [searchPosts]);
 	return (
 		<>
-			<form onSubmit={addNewPost}>
-				<MyInput
-					placeholder='Введите заголовок'
-					type='text'
-					value={title}
-					onChange={onChangeTitle}
-				/>
-				<MyInput
-					placeholder='Введите текст'
-					type='text'
-					value={body}
-					onChange={onChangeBody}
-				/>
-				<MyButton type='submit' children='Создать' />
-			</form>
+			<MyButton
+				children='Создать пост'
+				onClick={() => setModal(!modal)}
+				type='button'
+			/>
+			<MyModal setVisible={setModal} visible={modal}>
+				<h2> Создайте новый пост</h2>
+				<form onSubmit={addNewPost}>
+					<MyInput
+						placeholder='Введите заголовок'
+						type='text'
+						value={title}
+						onChange={onChangeTitle}
+					/>
+					<MyInput
+						placeholder='Введите текст'
+						type='text'
+						value={body}
+						onChange={onChangeBody}
+					/>
+					<MyButton type='submit' children='Создать' />
+				</form>
+			</MyModal>
 			<MyInput
 				onChange={(e: ChangeEvent<HTMLInputElement>) => {
 					setSearchQuery(e.target.value);
