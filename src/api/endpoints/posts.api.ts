@@ -15,7 +15,9 @@ export class PostApiService {
 	static async createPost(post: Omit<IPost, "id">) {
 		try {
 			const response = await instance.post("posts.json", post);
-			return response.data;
+			console.log(response, "response from post request");
+
+			return response.data.name;
 		} catch (error) {
 			console.error("Error when creating data", error);
 		}
@@ -30,7 +32,7 @@ export class PostApiService {
 
 	static async updatePost(id: string, post: Omit<IPost, "id">) {
 		try {
-			const response = await instance.post(`posts/${id}.json`, post);
+			const response = await instance.put(`posts/${id}.json`, post);
 			return response.data;
 		} catch (error) {
 			console.error("Error when updating data", error);

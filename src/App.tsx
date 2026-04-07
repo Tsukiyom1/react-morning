@@ -75,7 +75,7 @@ function App() {
 	// sort он не создает новый массив а меняет исходный
 	// spread оператор он создает копию массива
 
-	const [editingPostId, setEditingPostId] = useState<number | null>(null);
+	const [editingPostId, setEditingPostId] = useState<string | null>(null);
 	const [selected, setSelected] = useState<string>("");
 	const sortedPosts = useSortedPosts(data, selected);
 
@@ -97,30 +97,33 @@ function App() {
 		});
 	};
 
-	const addNewPost = (e: FormEvent<HTMLFormElement>) => {
+	const addNewPost = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 
-		const newPosts: IPost = {
+		const newPosts = {
 			body: body,
 			title: title,
-			id: Date.now(),
 		};
 
-		setData([...data, newPosts]);
+		const postKey = await PostApiService.createPost(newPosts);
+		console.log(postKey, "postId");
+
+		const newPostData: IPost = {
+			id: postKey,
+			body: body,
+			title: title,
+		};
+
+		setData([...data, newPostData]);
 		setBody("");
 		setTitle("");
 		setModal(false);
 	};
 
-	const onDeletePost = (id: number) => {
-		console.log("click");
-
+	const onDeletePost = async (id: string) => {
+		await PostApiService.deletePost(id);
 		setData(
 			data.filter(post => {
-				console.log(post, "post");
-				console.log(post.id, "post.id");
-				console.log(id, "id");
-
 				return post.id !== id;
 			}),
 		);
@@ -136,7 +139,12 @@ function App() {
 		setEditValue({ body: "", title: "" });
 	};
 
-	const onUpdate = (id: number) => {
+	const onUpdate = async (id: string) => {
+		const updateData = {
+			title: editValue.title,
+			body: editValue.body,
+		};
+		await PostApiService.updatePost(id, updateData);
 		setData(
 			data.map(data => {
 				return data.id === id

@@ -3,11 +3,11 @@ import type { IPost } from "./IPost";
 
 export interface IPostsProps {
 	post: IPost;
-	onDelete: (id: number) => void;
+	onDelete: (id: string) => void;
 	isEdit: boolean;
 	onEditChange: (e: ChangeEvent<HTMLInputElement>) => void;
 	onCancel: () => void;
-	onUpdate: (id: number) => void;
+	onUpdate: (id: string) => void;
 	editValue: { body: string; title: string };
 	onEdit: (post: IPost) => void;
 }
