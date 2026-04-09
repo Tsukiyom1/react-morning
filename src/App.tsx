@@ -1,94 +1,141 @@
-import {
-	useCallback,
-	useMemo,
-	useState,
-	type ChangeEvent,
-	type FormEvent,
-} from "react";
-
+import React, { useMemo, type ChangeEvent, type FormEvent } from "react";
+import { useState } from "react";
 import Posts from "./components/posts/Posts";
-import MyInput from "./UI/input/MyInput";
 import MyButton from "./UI/button/MyButton";
-import type { IPost } from "./interface/IPost";
+import MyInput from "./UI/input/MyInput";
 import MySelect from "./UI/select/MySelect";
-import React from "react";
-import MyModal from "./components/modal/MyModal";
 import { useSortedPosts } from "./hooks/useSortedPosts";
+import type { IComment } from "./interface/IComment";
+import type { IPost } from "./interface/IPost";
 import { PostApiService } from "./api/endpoints/posts.api";
-
-// useEffect(() => {
-// 	const fetchData = async () => {
-// 		try {
-// 			const response = await fetch(
-// 				"https://jsonplaceholder.typicode.com/posts",
-// 			);
-// 			const data = await response.json();
-// 			setData(data);
-// 		} catch (error) {
-// 			console.error(error, "when getting data");
-// 		}
-// 	};
-// 	fetchData();
-// }, []);
+import { CommentApiService } from "./api/endpoints/comments.api";
+import MyModal from "./components/modal/MyModal";
 
 function App() {
-	const [data, setData] = useState<IPost[]>([
-		// { title: "aa", body: "ее изучаю JS!", id: 1 },
-		// { title: "cc", body: "оо изучаю React!", id: 2 },
-		// { title: "ff", body: "рр изучаю Python!", id: 3 },
-		// { title: "bb", body: "фф изучаю Nest!", id: 4 },
-	]);
-
-	const [title, setTitle] = useState<string>("");
-	const [body, setBody] = useState<string>("");
-	const [searchQuery, setSearchQuery] = useState<string>("");
-	const [modal, setModal] = useState(false);
-
+	const [posts, setPosts] = useState<IPost[]>([]);
+	const [comments, setComments] = useState<IComment[]>([]);
+	const [change, setChange] = useState({
+		title: "",
+		body: "",
+	});
 	const [editValue, setEditValue] = useState({
 		title: "",
 		body: "",
 	});
+	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [editingPostId, setEditingPostId] = useState<string | null>(null);
+	const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+	const [selected, setSelected] = useState<string>("");
+	const [modal, setModal] = useState<boolean>(false);
+	const [commentValue, setCommentValue] = useState<string>("");
+	const sorted = useSortedPosts(posts, selected);
+
+	console.log(comments);
 
 	React.useEffect(() => {
 		const fetchData = async () => {
-			const response = await PostApiService.getAllPosts();
-			const data = Object.keys(response).map(value => {
-				console.log(value, "value from map method");
+			try {
+				const postResponse = await PostApiService.getAllPosts();
+				const commentResponse = await CommentApiService.getAllComments();
 
-				return {
-					id: value,
-					...response[value],
-				};
-			});
+				if (postResponse) {
+					const data = Object.keys(postResponse).map(value => {
+						return {
+							id: value,
+							...postResponse[value],
+						};
+					});
 
-			console.log(
-				data,
-				"final data from firebase (Изменили под нужный нам формат и записали ключ в виде id для того чтобы использовать ее для удаление и редактирование данных)",
-			);
+					setPosts(data);
+				} else {
+					setPosts([]);
+				}
 
-			setData(data);
+				if (commentResponse) {
+					const data = Object.keys(commentResponse).map(value => {
+						return {
+							id: value,
+							...commentResponse[value],
+						};
+					});
+
+					setComments(data);
+				} else {
+					setComments([]);
+				}
+			} catch (error) {
+				console.error("Error when getting data", error);
+			}
 		};
 
 		fetchData();
 	}, []);
-	// map он создает массив не меняет исходный
-	// sort он не создает новый массив а меняет исходный
-	// spread оператор он создает копию массива
 
-	const [editingPostId, setEditingPostId] = useState<string | null>(null);
-	const [selected, setSelected] = useState<string>("");
-	const sortedPosts = useSortedPosts(data, selected);
+	const addNewPost = async (e: FormEvent<HTMLFormElement>) => {
+		try {
+			e.preventDefault();
+			const postData = {
+				body: change.body,
+				title: change.title,
+			};
 
-	const onChangeBody = (e: ChangeEvent<HTMLInputElement>) => {
-		setBody(e.target.value);
+			const postId = await PostApiService.createPost(postData);
+			console.log(postId, "post id");
+
+			const newPost: IPost = {
+				id: postId,
+				title: change.title,
+				body: change.body,
+			};
+
+			setPosts([...posts, newPost]);
+
+			setChange({
+				title: "",
+				body: "",
+			});
+
+			setModal(!modal);
+		} catch (error) {
+			console.error("Error when creating post:", error);
+		}
 	};
-	const onChangeTitle = (e: ChangeEvent<HTMLInputElement>) => {
-		setTitle(e.target.value);
+
+	const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+		const { name, value } = e.target;
+
+		setChange(prev => {
+			return {
+				...prev,
+				[name]: value,
+			};
+		});
+	};
+
+	const onDeletePost = async (id: string) => {
+		try {
+			await PostApiService.deletePost(id);
+			setPosts(
+				posts.filter(post => {
+					return post.id !== id;
+				}),
+			);
+		} catch (error) {
+			console.error("Error when deleting post", error);
+		}
+	};
+
+	const startEdit = (post: IPost) => {
+		setEditingPostId(post.id);
+		setEditValue({ title: post.title, body: post.body });
+	};
+
+	const cancelEdit = () => {
+		setEditingPostId(null);
 	};
 
 	const onEditChange = (e: ChangeEvent<HTMLInputElement>) => {
-		const { value, name } = e.target;
-
+		const { name, value } = e.target;
 		setEditValue(prev => {
 			return {
 				...prev,
@@ -97,143 +144,198 @@ function App() {
 		});
 	};
 
-	const addNewPost = async (e: FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
+	const onUpdatePost = async (id: string) => {
+		try {
+			const updateData = {
+				title: editValue.title,
+				body: editValue.body,
+			};
+			await PostApiService.updatePost(id, updateData);
+			setPosts(
+				posts.map(post => {
+					return post.id === id
+						? { ...post, title: editValue.title, body: editValue.body }
+						: post;
+				}),
+			);
+			setEditingPostId(null);
+		} catch (error) {
+			console.error("Error when updating post", error);
+		}
+	};
 
-		const newPosts = {
-			body: body,
-			title: title,
+	const onAddComment = async (postId: string, text: string) => {
+		const commentData = {
+			text: text,
+			postId: postId,
 		};
 
-		const postKey = await PostApiService.createPost(newPosts);
-		console.log(postKey, "postId");
+		const commentId = await CommentApiService.createComment(commentData);
 
-		const newPostData: IPost = {
-			id: postKey,
-			body: body,
-			title: title,
+		const newComment: IComment = {
+			id: commentId,
+			text: text,
+			postId: postId,
 		};
 
-		setData([...data, newPostData]);
-		setBody("");
-		setTitle("");
-		setModal(false);
+		setComments([...comments, newComment]);
 	};
 
-	const onDeletePost = async (id: string) => {
-		await PostApiService.deletePost(id);
-		setData(
-			data.filter(post => {
-				return post.id !== id;
-			}),
-		);
+	const onDeleteComment = async (id: string) => {
+		try {
+			await CommentApiService.deleteComment(id);
+			setComments(
+				comments.filter(comment => {
+					return comment.id !== id;
+				}),
+			);
+		} catch (error) {
+			console.error("Error when deleting post", error);
+		}
 	};
 
-	const startEdit = (post: IPost) => {
-		setEditingPostId(post.id);
-		setEditValue({ body: post.body, title: post.title });
+	const sortPosts = (sort: string) => {
+		setSelected(sort);
 	};
 
-	const onCancel = () => {
-		setEditingPostId(null);
-		setEditValue({ body: "", title: "" });
-	};
+	const searchPosts = () => {
+		if (searchQuery === "") {
+			return sorted;
+		}
 
-	const onUpdate = async (id: string) => {
-		const updateData = {
-			title: editValue.title,
-			body: editValue.body,
-		};
-		await PostApiService.updatePost(id, updateData);
-		setData(
-			data.map(data => {
-				return data.id === id
-					? { ...data, title: editValue.title, body: editValue.body }
-					: data;
-			}),
-		);
-
-		setEditingPostId(null);
-	};
-
-	const sortPosts = (value: string) => {
-		console.log(value, "value on sort posts function");
-
-		setSelected(value);
-	};
-
-	const searchPosts = useCallback(() => {
 		const query = searchQuery.toLowerCase();
 
-		const searched = sortedPosts.filter(post => {
+		const filtered = sorted.filter(post => {
 			const title = post.title.toLowerCase().includes(query);
 			const body = post.body.toLowerCase().includes(query);
 
 			return title || body;
 		});
 
-		return searched;
-	}, [sortedPosts, searchQuery]);
+		return filtered;
+	};
 
-	const searchedPosts = useMemo(() => searchPosts(), [searchPosts]);
+	const onEditCommentChange = (e: ChangeEvent<HTMLInputElement>) => {
+		setCommentValue(e.target.value);
+	};
 
+	const onEditComment = (comment: IComment) => {
+		setEditingCommentId(comment.id);
+		setCommentValue(comment.text);
+	};
+
+	const onCommentEditCancel = () => {
+		setEditingCommentId(null);
+		setCommentValue("");
+	};
+
+	const onUpdateComment = async (id: string, text: string) => {
+		try {
+			const comment = comments.find(com => com.id === id);
+			console.log(comment, "comment ");
+			if (!comment) {
+				throw new Error("Comment not found");
+			}
+
+			const commentData = {
+				postId: comment.postId,
+				text: text,
+			};
+
+			await CommentApiService.updateComment(id, commentData);
+
+			setComments(
+				comments.map(comm => {
+					console.log(comm, "comm");
+
+					return comm.id === id ? { ...comm, text: text } : comm;
+				}),
+			);
+			setEditingCommentId(null);
+			setCommentValue("");
+		} catch (error) {
+			console.error("Error updating comment", error);
+		}
+	};
+
+	const filteredPosts = useMemo(() => searchPosts(), [searchPosts]);
 	return (
-		<>
+		<React.Fragment>
 			<MyButton
 				children='Создать пост'
-				onClick={() => setModal(!modal)}
 				type='button'
+				onClick={() => setModal(!modal)}
 			/>
 			<MyModal setVisible={setModal} visible={modal}>
-				<h2> Создайте новый пост</h2>
+				<h2 style={{ textAlign: "center" }}>Создайте пост!</h2>
+				{/* это является управляемым компонентом */}
 				<form onSubmit={addNewPost}>
 					<MyInput
+						name='title'
+						onChange={onChange}
 						placeholder='Введите заголовок'
 						type='text'
-						value={title}
-						onChange={onChangeTitle}
+						value={change.title}
 					/>
 					<MyInput
+						name='body'
+						onChange={onChange}
 						placeholder='Введите текст'
 						type='text'
-						value={body}
-						onChange={onChangeBody}
+						value={change.body}
 					/>
-					<MyButton type='submit' children='Создать' />
+					<MyButton type='submit' children='Отправить' />
 				</form>
 			</MyModal>
-			<MyInput
-				onChange={(e: ChangeEvent<HTMLInputElement>) => {
-					setSearchQuery(e.target.value);
-				}}
-				placeholder='Поиск...'
-				type='text'
-				value={searchQuery}
-				name='search'
-			/>
-			<MySelect
-				defaultValue='Сортировка по'
-				onChange={sortPosts}
-				options={[
-					{ name: "Сортировка по названию", value: "title" },
-					{ name: "Сортировка по описанию", value: "body" },
-				]}
-				value={selected}
-			/>
-			{searchedPosts.map(data => (
-				<Posts
-					post={data}
-					key={data.id}
-					onDelete={onDeletePost}
-					editValue={editValue}
-					isEdit={editingPostId === data.id}
-					onCancel={onCancel}
-					onEdit={startEdit}
-					onEditChange={onEditChange}
-					onUpdate={onUpdate}
+
+			<h2>Посты</h2>
+			<div>
+				<MyInput
+					name='search'
+					onChange={(e: ChangeEvent<HTMLInputElement>) =>
+						setSearchQuery(e.target.value)
+					}
+					type='text'
+					value={searchQuery}
+					placeholder='Поиск...'
 				/>
-			))}
-		</>
+				<MySelect
+					defaultValue='Сортировка по'
+					onChange={sortPosts}
+					options={[
+						{ name: "Сортировка по названию", value: "title" },
+						{ name: "Сортировка по описанию", value: "body" },
+					]}
+					value={selected}
+				/>
+			</div>
+			{filteredPosts.length === 0 ? (
+				<div>Постов не обнаружено</div>
+			) : (
+				filteredPosts.map((post, index) => (
+					<Posts
+						posts={post}
+						key={index}
+						onDelete={onDeletePost}
+						editValue={editValue}
+						onCancel={cancelEdit}
+						onEdit={startEdit}
+						onEditChange={onEditChange}
+						onUpdate={onUpdatePost}
+						isEdit={editingPostId === post.id}
+						comments={comments}
+						editCommentValue={commentValue}
+						editingCommentId={editingCommentId}
+						onAddComment={onAddComment}
+						onCommentEditCancel={onCommentEditCancel}
+						onDeleteComment={onDeleteComment}
+						onEditComment={onEditComment}
+						onEditCommentChange={onEditCommentChange}
+						onUpdateComment={onUpdateComment}
+					/>
+				))
+			)}
+		</React.Fragment>
 	);
 }
 
