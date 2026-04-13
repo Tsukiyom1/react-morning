@@ -5,7 +5,6 @@ export class PostApiService {
 	static async getAllPosts() {
 		try {
 			const response = await instance.get("posts.json");
-			console.log(response, "response from axios firebase");
 			return response.data;
 		} catch (error) {
 			console.error("Error fetching data", error);
@@ -15,7 +14,6 @@ export class PostApiService {
 	static async createPost(post: Omit<IPost, "id">) {
 		try {
 			const response = await instance.post("posts.json", post);
-			console.log(response, "response from post request");
 
 			return response.data.name;
 		} catch (error) {

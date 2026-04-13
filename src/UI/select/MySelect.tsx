@@ -2,9 +2,6 @@ import { type ChangeEvent } from "react";
 import type { ISelectProps } from "../../interface/ISelectProps";
 
 const MySelect = ({ defaultValue, onChange, options, value }: ISelectProps) => {
-	console.log(value, "value");
-	console.log(options, "options");
-
 	return (
 		<select
 			value={value}
